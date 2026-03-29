@@ -99,9 +99,11 @@ export default function App() {
         const gId = params.get('g');
         if (gId) {
           fetchGallery(gId);
-        } else if (view === 'landing') {
+        } else {
           setView('dashboard');
         }
+      } else {
+        setView('landing');
       }
     });
     return () => unsubscribe();
@@ -112,24 +114,28 @@ export default function App() {
     if (!user || view !== 'dashboard') return;
 
     // Real-time Galleries
-    const gQuery = query(
-      collection(db, 'artifacts', appId, 'users', user.uid, 'galleries'),
-      orderBy('createdAt', 'desc')
-    );
-    const gUnsub = onSnapshot(gQuery, (snap) => {
-      setGalleries(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    }, (err) => console.error("Gallery Sync Error:", err));
+    try {
+      const gQuery = query(
+        collection(db, 'artifacts', appId, 'users', user.uid, 'galleries'),
+        orderBy('createdAt', 'desc')
+      );
+      const gUnsub = onSnapshot(gQuery, (snap) => {
+        setGalleries(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      }, (err) => console.error("Gallery Sync Error (Likely Index Required):", err));
 
-    // Real-time Leads
-    const lQuery = query(
-      collection(db, 'artifacts', appId, 'users', user.uid, 'leads'),
-      orderBy('timestamp', 'desc')
-    );
-    const lUnsub = onSnapshot(lQuery, (snap) => {
-      setLeads(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    }, (err) => console.error("Lead Sync Error:", err));
+      // Real-time Leads
+      const lQuery = query(
+        collection(db, 'artifacts', appId, 'users', user.uid, 'leads'),
+        orderBy('timestamp', 'desc')
+      );
+      const lUnsub = onSnapshot(lQuery, (snap) => {
+        setLeads(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      }, (err) => console.error("Lead Sync Error (Likely Index Required):", err));
 
-    return () => { gUnsub(); lUnsub(); };
+      return () => { gUnsub(); lUnsub(); };
+    } catch (e) {
+      console.error("Firestore Query Failed", e);
+    }
   }, [user, view]);
 
   const fetchGallery = async (id) => {
@@ -146,7 +152,19 @@ export default function App() {
   };
 
   const handleGoogleLogin = () => {
-    signInWithPopup(auth, googleProvider).catch(err => console.error(err));
+    signInWithPopup(auth, googleProvider)
+      .then((result) => {
+        setUser(result.user);
+        setView('dashboard');
+      })
+      .catch(err => console.error("Login Error:", err));
+  };
+
+  const handleSignOut = () => {
+    signOut(auth).then(() => {
+      setUser(null);
+      setView('landing');
+    });
   };
 
   const createGallery = async () => {
@@ -171,7 +189,7 @@ export default function App() {
 
       setNewGallery({ name: '', targetUrl: '' });
       setIsModalOpen(false);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error("Create Gallery Error:", err); }
     setIsSaving(false);
   };
 
@@ -187,11 +205,11 @@ export default function App() {
         intentType: intent,
         galleryId: galleryContext.id,
         galleryName: galleryContext.name,
-        targetUrl: galleryContext.targetUrl,
+        targetUrl: galleryContext.targetUrl, // Essential for Zapier automation
         timestamp: serverTimestamp()
       });
       setGateStep(4); 
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error("Lead Capture Error:", err); }
     setIsSaving(false);
   };
 
@@ -384,7 +402,7 @@ export default function App() {
                 <div className="w-10 h-10 rounded-2xl bg-stone-100 border border-stone-200 overflow-hidden shadow-sm group cursor-pointer">
                   <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                 </div>
-                <button onClick={() => signOut(auth)} className="p-3 hover:bg-red-50 hover:text-red-500 rounded-2xl text-stone-300 transition-all duration-300">
+                <button onClick={handleSignOut} className="p-3 hover:bg-red-50 hover:text-red-500 rounded-2xl text-stone-300 transition-all duration-300">
                   <LogOut size={20}/>
                 </button>
               </div>
@@ -433,7 +451,6 @@ export default function App() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
-            {/* Left Column: Active Gateways */}
             <div className="lg:col-span-8 space-y-10">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -510,7 +527,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Right Column: Lead Intelligence */}
             <div className="lg:col-span-4 space-y-10">
               <div className="flex items-center justify-between">
                 <h2 className="text-xs font-bold uppercase tracking-[0.5em] text-stone-300">Intelligence Feed</h2>
@@ -578,7 +594,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Revenue Acceleration Insight */}
               <div className="bg-gradient-to-br from-stone-900 to-black p-10 rounded-[3.5rem] text-white space-y-6 relative overflow-hidden group shadow-2xl shadow-black/20">
                 <div className="absolute -right-8 -bottom-8 opacity-10 group-hover:scale-110 transition-transform duration-1000 rotate-12">
                   <Gift size={160}/>
@@ -589,7 +604,7 @@ export default function App() {
                   </div>
                   <h4 className="text-2xl font-serif italic">The Anniversary Loop</h4>
                   <p className="text-[11px] text-stone-400 leading-relaxed font-medium">
-                    Your Hot leads are future bookings waiting for the right moment. Our automated anniversary workflows are currently nurturing {leads.filter(l => l.heatScore === 'Hot').length} high-intent prospects for you.
+                    Your Hot leads are future bookings waiting for the right moment. Our automated anniversary workflows are currently nurturing prospects for you.
                   </p>
                   <button className="flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#D4AF37] hover:translate-x-1.5 transition-all duration-500">
                     Optimize CRM Triggers <ArrowRight size={16}/>
@@ -599,7 +614,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* New Deployment Modal */}
           {isModalOpen && (
             <div className="fixed inset-0 bg-stone-900/70 backdrop-blur-xl z-[100] flex items-center justify-center p-6 animate-in fade-in duration-500">
               <div className="bg-white w-full max-w-xl rounded-[4rem] p-14 space-y-12 animate-in zoom-in-95 duration-700 shadow-2xl relative">
@@ -661,7 +675,6 @@ export default function App() {
           )}
         </main>
       ) : view === 'landing' ? (
-        /* Luxury Marketing View */
         <main className="max-w-7xl mx-auto px-10 py-32 md:py-60 text-center space-y-24 animate-in fade-in duration-1000 overflow-hidden relative">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#D4AF37]/5 rounded-full blur-[120px] -z-10 animate-pulse"></div>
           
@@ -720,13 +733,11 @@ export default function App() {
         </main>
       ) : null}
       
-      {/* Dynamic Global Styles */}
       <style>{styles}</style>
     </div>
   );
 }
 
-// Custom CSS for refined experience
 const styles = `
 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
