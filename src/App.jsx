@@ -50,6 +50,8 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
+
+// IMPORTANT: This matches your Zapier path: artifacts/cinemetrics-prod/...
 const appId = 'cinemetrics-prod'; 
 
 export default function App() {
@@ -102,8 +104,6 @@ export default function App() {
   }, [user, view]);
 
   const fetchGallery = async (id) => {
-    // In a real app, this would be a public doc lookup
-    // For this MVP, we store public metadata in a shared collection
     try {
       const docRef = doc(db, 'artifacts', appId, 'public', 'galleries', id);
       const docSnap = await getDoc(docRef);
@@ -117,7 +117,8 @@ export default function App() {
   };
 
   const handleGoogleLogin = () => {
-    signInWithPopup(auth, provider).catch(err => console.error(err));
+    // Fixed: used googleProvider to match the variable name defined above
+    signInWithPopup(auth, googleProvider).catch(err => console.error(err));
   };
 
   const createGallery = async () => {
@@ -160,7 +161,7 @@ export default function App() {
         intentType: intent,
         galleryId: galleryContext.id,
         galleryName: galleryContext.name,
-        targetUrl: galleryContext.targetUrl, // CRITICAL: Added for Zapier automation
+        targetUrl: galleryContext.targetUrl, // CRITICAL: This is what Zapier uses for the email link
         timestamp: serverTimestamp()
       });
       setGateStep(4); 
