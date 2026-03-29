@@ -492,7 +492,7 @@ export default function App() {
                           
                           <div className="flex gap-3">
                             <a 
-                              href={`${window.location.origin}?g={g.id}`}
+                              href={`${window.location.origin}?g=${g.id}`}
                               target="_blank"
                               className="flex-1 flex items-center justify-center gap-2.5 py-5 text-[10px] font-bold uppercase tracking-[0.2em] border border-stone-100 rounded-2xl hover:bg-black hover:text-white transition-all duration-500"
                             >
