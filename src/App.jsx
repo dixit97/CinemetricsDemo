@@ -44,11 +44,15 @@ import {
 } from 'lucide-react';
 
 // --- Firebase Configuration ---
-const firebaseConfig = JSON.parse(__firebase_config);
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'cinemetrics-prod';
+const firebaseConfig = {
+  apiKey: "AIzaSyDPNJTYVKW4RFUQlvZw1a95R6AU5Om6Auc",
+  authDomain: "cinemetricsdemo.firebaseapp.com",
+  projectId: "cinemetricsdemo",
+  storageBucket: "cinemetricsdemo.firebasestorage.app",
+  messagingSenderId: "172545606278",
+  appId: "1:172545606278:web:4a8e204967204cabf80707",
+  measurementId: "G-QGX3C38E1P"
+};
 
 // --- Theme Presets ---
 const THEMES = {
